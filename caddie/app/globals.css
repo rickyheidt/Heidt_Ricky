@@ -40,6 +40,33 @@ body {
   min-height: -webkit-fill-available;
 }
 
+/* ── PWA / iPhone safe area ──────────────────────────── */
+/* When running as standalone PWA, extend bg behind the status bar */
+@media (display-mode: standalone) {
+  body {
+    /* Forest green behind status bar on iPhone */
+    background-color: var(--forest);
+  }
+  /* Restore cream for the main content wrapper */
+  body > div {
+    background-color: var(--cream);
+  }
+}
+
+/* Safe-area utilities (notch + home indicator) */
+.pt-safe {
+  padding-top: max(env(safe-area-inset-top, 0px), 0px);
+}
+.pb-safe {
+  padding-bottom: max(env(safe-area-inset-bottom, 20px), 20px);
+}
+.pl-safe {
+  padding-left: env(safe-area-inset-left, 0px);
+}
+.pr-safe {
+  padding-right: env(safe-area-inset-right, 0px);
+}
+
 /* Scrollbar hide utility */
 .scrollbar-hide {
   -ms-overflow-style: none;
