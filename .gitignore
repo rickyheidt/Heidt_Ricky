@@ -46,3 +46,10 @@ Network Trash Folder
 Temporary Items
 .apdisk
 APLesson_02/~$imitive Data Types.docx
+
+# Node.js
+node_modules/
+
+# Next.js
+caddie/.next/
+caddie/node_modules/
