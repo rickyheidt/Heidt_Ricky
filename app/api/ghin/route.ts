@@ -4,10 +4,14 @@ import { NextRequest, NextResponse } from "next/server";
 //
 // The USGA GHIN API is at https://api2.ghin.com/api/v1
 //
-// To get your GHIN_API_TOKEN, apply for developer access at:
-//   https://www.usga.org/content/usga/home-page/handicapping/ghin.html
+// HOW TO GET THE TOKEN (takes ~60 seconds):
+//   1. Open https://www.ghin.com in Chrome
+//   2. Open DevTools → Network tab
+//   3. Search for any GHIN number on the site
+//   4. Find the request to api2.ghin.com/api/v1/golfers/search.json
+//   5. Copy the token= value from that request URL
 //
-// Once approved, add the token to Vercel:
+// Then add to Vercel:
 //   Project → Settings → Environment Variables → GHIN_API_TOKEN
 //
 // ─────────────────────────────────────────────────────────────────────────────
@@ -54,7 +58,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         {
           error: "GHIN_API_TOKEN is not configured.",
-          hint: "Add your GHIN API token to Vercel environment variables. Apply for access at usga.org/ghin",
+          hint: "Get the token from ghin.com: open DevTools → Network tab → search a GHIN number → copy token= from the api2.ghin.com request URL → add as GHIN_API_TOKEN in Vercel",
           configRequired: true,
         },
         { status: 503 }

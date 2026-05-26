@@ -139,34 +139,51 @@ export default function GhinModal({ isOpen, onClose }: GhinModalProps) {
                   </div>
                   <div>
                     <p className="font-fraunces text-ink text-xl font-semibold mb-1">
-                      API Setup Required
+                      Get Your GHIN Token
                     </p>
                     <p className="text-muted text-sm leading-relaxed">
-                      Add your GHIN API token to Vercel to enable real handicap sync.
+                      The GHIN token lives in ghin.com&apos;s own network traffic — grab it in ~60 seconds.
                     </p>
                   </div>
 
                   <div className="w-full bg-cream-dark rounded-2xl p-4 text-left space-y-3">
                     <p className="text-xs font-bold text-ink uppercase tracking-widest">
-                      How to activate
+                      How to get the token
                     </p>
                     <div className="space-y-2">
                       <Step n={1}>
-                        Apply for API access at{" "}
-                        <span className="text-forest font-semibold">usga.org/ghin</span>
+                        Open{" "}
+                        <span className="text-forest font-semibold">ghin.com</span>
+                        {" "}in Chrome or Safari
                       </Step>
                       <Step n={2}>
-                        In Vercel → <span className="font-semibold">Settings</span> →{" "}
-                        <span className="font-semibold">Environment Variables</span>
+                        Open <span className="font-semibold">DevTools</span> (F12) →{" "}
+                        <span className="font-semibold">Network</span> tab
                       </Step>
                       <Step n={3}>
-                        Add variable:{" "}
-                        <code className="bg-cream text-forest text-xs px-1.5 py-0.5 rounded font-mono">
-                          GHIN_API_TOKEN
+                        Search for any GHIN number on the site — watch for a request to{" "}
+                        <code className="bg-cream text-forest text-[11px] px-1 py-0.5 rounded font-mono">
+                          api2.ghin.com
                         </code>
                       </Step>
-                      <Step n={4}>Redeploy — then try again</Step>
+                      <Step n={4}>
+                        Copy the{" "}
+                        <code className="bg-cream text-forest text-[11px] px-1 py-0.5 rounded font-mono">
+                          token=
+                        </code>
+                        {" "}value from that URL
+                      </Step>
+                      <Step n={5}>
+                        In Vercel: Settings → Environment Variables → add{" "}
+                        <code className="bg-cream text-forest text-[11px] px-1 py-0.5 rounded font-mono">
+                          GHIN_API_TOKEN
+                        </code>
+                        {" "}→ Redeploy
+                      </Step>
                     </div>
+                    <p className="text-[11px] text-muted/70 pt-1 leading-relaxed">
+                      ghin.com uses this same token publicly — it works fine for personal apps.
+                    </p>
                   </div>
 
                   <button
