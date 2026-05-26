@@ -2,7 +2,7 @@
 
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
-import type { User, Friend, RoundState } from "./types";
+import type { User, Friend, RoundState, Course } from "./types";
 import { DEFAULT_FRIENDS } from "./data";
 import { generateId } from "./utils";
 import { hashPassword, verifyPassword } from "./auth";
@@ -287,3 +287,33 @@ export const useRoundStore = create<RoundStore>()((set, get) => ({
 
   resetRound: () => set({ round: null }),
 }));
+
+// ─── Custom Courses Store ─────────────────────────────────────────────────────
+
+interface CoursesState {
+  customCourses: Course[];
+  addCourse: (course: Course) => void;
+  removeCourse: (id: string) => void;
+}
+
+export const useCoursesStore = create<CoursesState>()(
+  persist(
+    (set) => ({
+      customCourses: [],
+
+      addCourse: (course) =>
+        set((state) => ({
+          customCourses: [...state.customCourses, course],
+        })),
+
+      removeCourse: (id) =>
+        set((state) => ({
+          customCourses: state.customCourses.filter((c) => c.id !== id),
+        })),
+    }),
+    {
+      name: "caddie-courses",
+      storage: createJSONStorage(() => localStorage),
+    }
+  )
+);

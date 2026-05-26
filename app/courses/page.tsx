@@ -2,8 +2,9 @@
 
 import { useState, useMemo, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft, Search, MapPin } from "lucide-react";
+import { ArrowLeft, Search, MapPin, Plus, Trash2 } from "lucide-react";
 import { COURSES } from "@/lib/data";
+import { useCoursesStore } from "@/lib/store";
 import type { Course } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -12,23 +13,27 @@ function CoursesContent() {
   const searchParams = useSearchParams();
   const gameId = searchParams.get("game") ?? "skins";
 
+  const { customCourses, removeCourse } = useCoursesStore();
+
   const [query, setQuery] = useState("");
   const [locationUsed, setLocationUsed] = useState(false);
 
+  // Merge built-in + custom courses
+  const allCourses = useMemo(() => [...COURSES, ...customCourses], [customCourses]);
+
   const filteredCourses = useMemo(() => {
-    if (!query.trim()) return COURSES;
+    if (!query.trim()) return allCourses;
     const lower = query.toLowerCase();
-    return COURSES.filter(
+    return allCourses.filter(
       (c) =>
         c.name.toLowerCase().includes(lower) ||
         c.city.toLowerCase().includes(lower) ||
         c.state.toLowerCase().includes(lower)
     );
-  }, [query]);
+  }, [query, allCourses]);
 
   const handleUseLocation = () => {
     setLocationUsed(true);
-    // Mock: immediately show all courses sorted by distance
   };
 
   const handleSelectCourse = (course: Course) => {
@@ -37,7 +42,6 @@ function CoursesContent() {
 
   const displayCourses = locationUsed
     ? [...filteredCourses].sort((a, b) => {
-        // Sort by numeric distance (strip " mi")
         const parseDistance = (d?: string) => {
           if (!d) return 9999;
           const num = parseFloat(d.replace(/[^0-9.]/g, "").replace(",", ""));
@@ -47,18 +51,31 @@ function CoursesContent() {
       })
     : filteredCourses;
 
+  const isCustom = (id: string) => customCourses.some((c) => c.id === id);
+
   return (
     <div className="min-h-screen bg-cream pb-10">
       {/* ── Header ────────────────────────────────────────────────── */}
       <div className="px-5 pt-14 pb-4">
-        <button
-          onClick={() => router.back()}
-          className="flex items-center gap-2 text-forest mb-6 active:opacity-60 transition-opacity min-h-[44px]"
-          aria-label="Back"
-        >
-          <ArrowLeft size={20} />
-          <span className="font-inter text-sm font-medium">Back</span>
-        </button>
+        <div className="flex items-center justify-between mb-6">
+          <button
+            onClick={() => router.back()}
+            className="flex items-center gap-2 text-forest active:opacity-60 transition-opacity min-h-[44px]"
+            aria-label="Back"
+          >
+            <ArrowLeft size={20} />
+            <span className="font-inter text-sm font-medium">Back</span>
+          </button>
+
+          {/* Add Course button */}
+          <button
+            onClick={() => router.push(`/courses/new?game=${gameId}`)}
+            className="flex items-center gap-1.5 bg-forest text-white font-inter font-semibold text-sm px-4 py-2.5 rounded-xl active:scale-[0.97] transition-transform"
+          >
+            <Plus size={16} />
+            Add Course
+          </button>
+        </div>
 
         <h1 className="font-fraunces text-ink text-4xl font-bold leading-tight">
           Select Course
@@ -67,7 +84,6 @@ function CoursesContent() {
 
       {/* ── Search + Location ──────────────────────────────────────── */}
       <div className="px-5 flex flex-col gap-3 mb-5">
-        {/* Search bar */}
         <div className="relative">
           <Search
             size={18}
@@ -87,7 +103,6 @@ function CoursesContent() {
           />
         </div>
 
-        {/* Use My Location button */}
         <button
           onClick={handleUseLocation}
           className={cn(
@@ -115,6 +130,9 @@ function CoursesContent() {
         <p className="font-inter text-muted text-xs">
           {displayCourses.length} course{displayCourses.length !== 1 ? "s" : ""}
           {query ? ` matching "${query}"` : " available"}
+          {customCourses.length > 0 && !query && (
+            <span className="text-forest"> · {customCourses.length} custom</span>
+          )}
         </p>
       </div>
 
@@ -126,50 +144,77 @@ function CoursesContent() {
             <p className="font-fraunces text-ink text-xl font-semibold">
               No courses found
             </p>
-            <p className="font-inter text-muted text-sm mt-1">
+            <p className="font-inter text-muted text-sm mt-1 mb-5">
               Try a different search term
             </p>
+            <button
+              onClick={() => router.push(`/courses/new?game=${gameId}`)}
+              className="flex items-center gap-2 bg-forest text-white font-inter font-semibold text-sm px-5 py-3 rounded-xl active:scale-[0.97] transition-transform"
+            >
+              <Plus size={16} />
+              Add This Course
+            </button>
           </div>
         ) : (
           displayCourses.map((course) => (
-            <button
-              key={course.id}
-              onClick={() => handleSelectCourse(course)}
-              className={cn(
-                "w-full text-left bg-cream-dark rounded-2xl shadow-card p-5",
-                "active:scale-[0.98] transition-transform"
-              )}
-            >
-              <div className="flex items-start justify-between gap-3 mb-2">
-                {/* Course name */}
-                <h2 className="font-fraunces text-ink text-lg font-semibold leading-snug flex-1">
-                  {course.name}
-                </h2>
-
-                {/* Distance badge */}
-                {course.distance && (
-                  <span className="shrink-0 bg-gold/10 text-gold font-inter text-xs font-semibold px-2.5 py-1 rounded-full mt-0.5">
-                    {course.distance}
-                  </span>
+            <div key={course.id} className="relative group">
+              <button
+                onClick={() => handleSelectCourse(course)}
+                className={cn(
+                  "w-full text-left bg-cream-dark rounded-2xl shadow-card p-5",
+                  "active:scale-[0.98] transition-transform",
+                  isCustom(course.id) && "border border-forest/20"
                 )}
-              </div>
+              >
+                <div className="flex items-start justify-between gap-3 mb-2">
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <h2 className="font-fraunces text-ink text-lg font-semibold leading-snug truncate">
+                      {course.name}
+                    </h2>
+                    {isCustom(course.id) && (
+                      <span className="shrink-0 bg-forest/10 text-forest font-inter text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wide">
+                        Custom
+                      </span>
+                    )}
+                  </div>
+                  {course.distance && (
+                    <span className="shrink-0 bg-gold/10 text-gold font-inter text-xs font-semibold px-2.5 py-1 rounded-full mt-0.5">
+                      {course.distance}
+                    </span>
+                  )}
+                </div>
 
-              {/* City, State */}
-              <p className="font-inter text-muted text-sm mb-3">
-                {course.city}, {course.state}
-              </p>
+                <p className="font-inter text-muted text-sm mb-3">
+                  {course.city}, {course.state}
+                </p>
 
-              {/* Stats row */}
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                <StatPill label={`${course.holes} holes`} />
-                <span className="text-muted/40 text-xs">·</span>
-                <StatPill label={`Par ${course.par}`} />
-                <span className="text-muted/40 text-xs">·</span>
-                <StatPill label={`Rating ${course.rating}`} />
-                <span className="text-muted/40 text-xs">·</span>
-                <StatPill label={`Slope ${course.slope}`} />
-              </div>
-            </button>
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                  <StatPill label={`${course.holes} holes`} />
+                  <span className="text-muted/40 text-xs">·</span>
+                  <StatPill label={`Par ${course.par}`} />
+                  <span className="text-muted/40 text-xs">·</span>
+                  <StatPill label={`Rating ${course.rating}`} />
+                  <span className="text-muted/40 text-xs">·</span>
+                  <StatPill label={`Slope ${course.slope}`} />
+                </div>
+              </button>
+
+              {/* Delete button for custom courses */}
+              {isCustom(course.id) && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (confirm(`Remove "${course.name}"?`)) {
+                      removeCourse(course.id);
+                    }
+                  }}
+                  className="absolute top-3 right-3 w-8 h-8 flex items-center justify-center rounded-full bg-red-50 text-red-400 active:bg-red-100 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
+                  aria-label="Remove custom course"
+                >
+                  <Trash2 size={14} />
+                </button>
+              )}
+            </div>
           ))
         )}
       </div>

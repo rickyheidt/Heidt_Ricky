@@ -226,6 +226,84 @@ export const COURSES: Course[] = [
       [375,168,392,535,418,405,171,385,552,412,398,165,542,408,172,380,420,548]
     ),
   },
+
+  // ── North County San Diego ──────────────────────────────────────────────────
+
+  {
+    id: "torrey-north",
+    name: "Torrey Pines (North)",
+    city: "La Jolla",
+    state: "CA",
+    distance: "2.3 mi",
+    holes: 18,
+    par: 72,
+    rating: 72.1,
+    slope: 127,
+    holeData: generateHoles(
+      [4,4,3,4,5,4,3,5,4,4,4,5,3,4,4,3,5,4],
+      [375,415,160,385,515,390,140,470,400,395,365,535,150,380,405,140,530,390]
+    ),
+  },
+  {
+    id: "lomas-santa-fe",
+    name: "Lomas Santa Fe CC",
+    city: "Solana Beach",
+    state: "CA",
+    distance: "7 mi",
+    holes: 18,
+    par: 72,
+    rating: 71.5,
+    slope: 126,
+    holeData: generateHoles(
+      [4,4,5,3,4,4,3,4,5,4,4,3,4,5,4,3,4,5],
+      [385,395,515,160,370,385,145,370,520,390,405,165,375,515,380,150,400,535]
+    ),
+  },
+  {
+    id: "arrowood",
+    name: "Arrowood Golf Course",
+    city: "Oceanside",
+    state: "CA",
+    distance: "22 mi",
+    holes: 18,
+    par: 72,
+    rating: 71.5,
+    slope: 127,
+    holeData: generateHoles(
+      [4,3,4,5,4,4,3,4,5,4,3,4,4,5,3,4,4,5],
+      [390,155,385,520,400,380,165,370,530,380,150,395,385,540,160,380,400,535]
+    ),
+  },
+  {
+    id: "encinitas-ranch",
+    name: "Encinitas Ranch GC",
+    city: "Encinitas",
+    state: "CA",
+    distance: "14 mi",
+    holes: 18,
+    par: 72,
+    rating: 70.4,
+    slope: 124,
+    holeData: generateHoles(
+      [4,4,5,3,4,4,3,5,4,4,3,4,5,4,3,4,4,5],
+      [370,385,515,150,375,395,155,535,405,395,155,380,530,385,140,375,390,520]
+    ),
+  },
+  {
+    id: "rams-hill",
+    name: "Rams Hill Golf Club",
+    city: "Borrego Springs",
+    state: "CA",
+    distance: "87 mi",
+    holes: 18,
+    par: 72,
+    rating: 71.7,
+    slope: 134,
+    holeData: generateHoles(
+      [4,4,5,3,4,4,3,4,5,4,4,3,5,4,4,3,5,4],
+      [395,405,535,160,385,380,165,400,540,390,415,165,530,390,380,155,525,400]
+    ),
+  },
 ];
 
 // ─── Games ────────────────────────────────────────────────────────────────────

@@ -4,7 +4,7 @@ import { useState, useMemo, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, X, Users, UserPlus } from "lucide-react";
 import { GAMES, COURSES } from "@/lib/data";
-import { useAuthStore, useFriendsStore, useRoundStore } from "@/lib/store";
+import { useAuthStore, useFriendsStore, useRoundStore, useCoursesStore } from "@/lib/store";
 import { cn, formatHandicap, generateId } from "@/lib/utils";
 import type {
   Player,
@@ -220,9 +220,10 @@ function SetupContent() {
   const { user } = useAuthStore();
   const { friends } = useFriendsStore();
   const { setRound } = useRoundStore();
+  const { customCourses } = useCoursesStore();
 
   const game = GAMES.find((g) => g.id === gameTypeParam);
-  const course = COURSES.find((c) => c.id === courseId);
+  const course = [...COURSES, ...customCourses].find((c) => c.id === courseId);
 
   // Build host player from user
   const hostPlayer: Player = useMemo(
