@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Trophy, ArrowRight, Flag } from "lucide-react";
@@ -191,7 +191,9 @@ function SkinsSummarySection({ results: skinResults }: { results: import("@/lib/
 export default function SummaryPage() {
   const router = useRouter();
   const { round, resetRound } = useRoundStore();
-  const { updateUser } = useAuthStore();
+  const { user, updateUser } = useAuthStore();
+  const userRef = useRef(user);
+  userRef.current = user;
 
   const [results, setResults] = useState<PlayerResult[]>([]);
   const [skinResults, setSkinResults] = useState<import("@/lib/types").SkinResult[]>([]);
@@ -240,11 +242,12 @@ export default function SummaryPage() {
     const hostResult = playerResults.find((r) => r.player.isHost);
     if (hostResult) {
       const net = hostResult.moneyWon - hostResult.moneyLost;
+      const currentUser = userRef.current;
       updateUser({
         stats: {
-          roundsPlayed: 1, // will be additive in real app
-          lifetimeWinnings: net > 0 ? net : 0,
-          wins: hostResult.position === 1 ? 1 : 0,
+          roundsPlayed: (currentUser?.stats.roundsPlayed ?? 0) + 1,
+          lifetimeWinnings: (currentUser?.stats.lifetimeWinnings ?? 0) + (net > 0 ? net : 0),
+          wins: (currentUser?.stats.wins ?? 0) + (hostResult.position === 1 ? 1 : 0),
         },
       });
     }

@@ -9,6 +9,7 @@ export interface User {
   lowHi?: string;
   homeClub?: string;
   avatar?: string;
+  passwordHash?: string;
   ghinLinked: boolean;
   ghinVerified?: boolean;
   ghinSyncedAt?: string;

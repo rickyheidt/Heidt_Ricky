@@ -10,6 +10,7 @@ import {
   LogOut,
   Home,
   ChevronRight,
+  Pencil,
 } from "lucide-react";
 import { useAuthStore } from "@/lib/store";
 import { formatHandicap, formatMoney, cn } from "@/lib/utils";
@@ -32,10 +33,12 @@ function timeSince(isoString: string): string {
 
 export default function ProfilePage() {
   const router = useRouter();
-  const { user, isAuthenticated, signOut, unlinkGhin, linkGhin } =
+  const { user, isAuthenticated, signOut, unlinkGhin, linkGhin, updateUser } =
     useAuthStore();
   const [ghinOpen, setGhinOpen] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [editingHandicap, setEditingHandicap] = useState(false);
+  const [handicapInput, setHandicapInput] = useState("");
 
   // Auth guard
   useEffect(() => {
@@ -158,24 +161,83 @@ export default function ProfilePage() {
               </div>
             </div>
           ) : (
-            /* Not linked state — cream-dark */
-            <button
-              onClick={() => setGhinOpen(true)}
-              className="w-full bg-cream-dark rounded-2xl p-5 shadow-card active:scale-[0.98] transition-transform text-left"
-            >
-              <div className="flex flex-col items-center gap-3 py-3">
-                <span className="font-fraunces text-forest text-5xl font-bold tracking-wider">
-                  GHIN
-                </span>
-                <p className="font-inter text-muted text-sm text-center leading-relaxed">
-                  Connect your GHIN account to sync your official handicap
-                  index.
-                </p>
-                <span className="inline-flex items-center justify-center bg-forest text-white font-inter font-semibold text-sm px-5 py-2.5 rounded-xl mt-1">
-                  Link GHIN Account
-                </span>
+            /* Not linked state — editable handicap card */
+            <div className="flex flex-col gap-3">
+              <div className="bg-forest rounded-2xl p-5 shadow-card relative overflow-hidden">
+                {/* Decorative rings */}
+                <span className="absolute -right-8 -top-8 w-40 h-40 rounded-full border-[24px] border-white/5 pointer-events-none" />
+                <span className="absolute -right-4 -bottom-10 w-32 h-32 rounded-full border-[16px] border-white/5 pointer-events-none" />
+
+                {/* Edit button */}
+                {!editingHandicap && (
+                  <button
+                    onClick={() => {
+                      setHandicapInput(String(user.handicap ?? ""));
+                      setEditingHandicap(true);
+                    }}
+                    className="absolute top-4 right-4 text-white/60 active:text-white transition-colors p-1 z-10"
+                    aria-label="Edit handicap"
+                  >
+                    <Pencil size={18} />
+                  </button>
+                )}
+
+                {editingHandicap ? (
+                  /* Editing state */
+                  <div className="flex flex-col gap-3 relative z-10">
+                    <p className="font-inter text-white/60 text-sm font-medium">
+                      Handicap Index
+                    </p>
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      value={handicapInput}
+                      onChange={(e) => setHandicapInput(e.target.value)}
+                      placeholder="18.0"
+                      className="bg-white/10 text-white font-fraunces text-3xl font-bold rounded-xl px-4 py-3 border border-transparent outline-none focus:border-white/30 transition-colors placeholder:text-white/30 w-full"
+                    />
+                    <div className="flex gap-3">
+                      <button
+                        onClick={() => {
+                          const val = parseFloat(handicapInput);
+                          if (!isNaN(val)) {
+                            updateUser({ handicap: val });
+                          }
+                          setEditingHandicap(false);
+                        }}
+                        className="flex-1 bg-gold text-white font-inter font-semibold text-sm rounded-xl py-2.5 active:scale-[0.97] transition-transform"
+                      >
+                        Save
+                      </button>
+                      <button
+                        onClick={() => setEditingHandicap(false)}
+                        className="flex-1 border border-white/30 text-white font-inter font-semibold text-sm rounded-xl py-2.5 active:bg-white/10 transition-colors"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  /* Display state */
+                  <div className="relative z-10">
+                    <p className="font-inter text-white/60 text-sm font-medium mb-1">
+                      Handicap Index
+                    </p>
+                    <p className="font-fraunces text-white text-6xl font-bold leading-none">
+                      {formatHandicap(user.handicap)}
+                    </p>
+                  </div>
+                )}
               </div>
-            </button>
+
+              {/* Secondary GHIN link */}
+              <button
+                onClick={() => setGhinOpen(true)}
+                className="font-inter text-muted text-sm active:opacity-60 transition-opacity text-center"
+              >
+                Link GHIN Account
+              </button>
+            </div>
           )}
         </motion.div>
 

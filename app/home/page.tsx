@@ -111,7 +111,7 @@ export default function HomePage() {
         >
           <button
             onClick={() => {
-              if (!user.ghinLinked) setGhinOpen(true);
+              if (!user.ghinLinked) router.push("/profile");
             }}
             className="w-full text-left bg-forest rounded-2xl p-5 shadow-card relative overflow-hidden active:scale-[0.98] transition-transform"
           >
@@ -148,8 +148,19 @@ export default function HomePage() {
                   GHIN #{user.ghin}
                 </p>
               ) : (
-                <div className="inline-flex items-center gap-1.5 border border-white/30 text-white font-inter text-sm font-medium px-4 py-1.5 rounded-xl">
-                  Link GHIN
+                <div className="flex flex-col gap-1">
+                  <p className="font-inter text-white/70 text-sm font-medium">
+                    Tap to edit handicap
+                  </p>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setGhinOpen(true);
+                    }}
+                    className="font-inter text-white/40 text-xs active:text-white/60 transition-colors text-left"
+                  >
+                    or Link GHIN
+                  </button>
                 </div>
               )}
             </div>

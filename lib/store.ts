@@ -5,6 +5,38 @@ import { persist, createJSONStorage } from "zustand/middleware";
 import type { User, Friend, RoundState } from "./types";
 import { DEFAULT_FRIENDS } from "./data";
 import { generateId } from "./utils";
+import { hashPassword, verifyPassword } from "./auth";
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function loadUsers(): User[] {
+  try {
+    return JSON.parse(localStorage.getItem("caddie-users") || "[]") as User[];
+  } catch {
+    return [];
+  }
+}
+
+function saveUsers(users: User[]) {
+  try {
+    localStorage.setItem("caddie-users", JSON.stringify(users));
+  } catch {
+    // ignore
+  }
+}
+
+function syncUserToStorage(user: User) {
+  const users = loadUsers();
+  const idx = users.findIndex((u) => u.id === user.id);
+  if (idx >= 0) {
+    // Preserve passwordHash from stored version (zustand state may not have it)
+    const existingHash = users[idx].passwordHash;
+    users[idx] = { ...user, passwordHash: user.passwordHash ?? existingHash };
+  } else {
+    users.push(user);
+  }
+  saveUsers(users);
+}
 
 // ─── Auth Store ───────────────────────────────────────────────────────────────
 
@@ -15,7 +47,12 @@ interface AuthState {
   updateUser: (updates: Partial<User>) => void;
   signOut: () => void;
   signIn: (email: string, password: string) => Promise<boolean>;
-  signUp: (name: string, email: string, password: string) => Promise<boolean>;
+  signUp: (
+    name: string,
+    email: string,
+    password: string,
+    handicap?: number
+  ) => Promise<boolean>;
   linkGhin: (ghin: string, lastName: string) => Promise<boolean>;
   unlinkGhin: () => void;
 }
@@ -31,53 +68,66 @@ export const useAuthStore = create<AuthState>()(
       updateUser: (updates) => {
         const user = get().user;
         if (!user) return;
-        set({ user: { ...user, ...updates } });
+        const updated = { ...user, ...updates };
+        set({ user: updated });
+        syncUserToStorage(updated);
       },
 
-      signOut: () => set({ user: null, isAuthenticated: false }),
-
-      signIn: async (email: string, _password: string) => {
-        // Mock auth — load stored user or create new
-        const stored = get().user;
-        if (stored && stored.email === email) {
-          set({ isAuthenticated: true });
-          return true;
-        }
-        // Check localStorage for persisted users
-        try {
-          const savedUsers = JSON.parse(
-            localStorage.getItem("caddie-users") || "[]"
-          ) as User[];
-          const found = savedUsers.find((u) => u.email === email);
-          if (found) {
-            set({ user: found, isAuthenticated: true });
-            return true;
-          }
-        } catch {
-          // ignore
-        }
-        return false;
+      signOut: () => {
+        const user = get().user;
+        if (user) syncUserToStorage(user);
+        set({ user: null, isAuthenticated: false });
       },
 
-      signUp: async (name: string, email: string, _password: string) => {
+      signIn: async (email: string, password: string) => {
+        const users = loadUsers();
+        const found = users.find(
+          (u) => u.email.toLowerCase() === email.toLowerCase()
+        );
+
+        if (!found) return false;
+
+        // If user has a password hash, verify it
+        if (found.passwordHash) {
+          const valid = await verifyPassword(password, found.passwordHash);
+          if (!valid) return false;
+        }
+        // Legacy users without passwordHash: allow sign-in with any password
+
+        set({ user: found, isAuthenticated: true });
+        return true;
+      },
+
+      signUp: async (
+        name: string,
+        email: string,
+        password: string,
+        handicap?: number
+      ) => {
+        // Check for duplicate email
+        const existing = loadUsers();
+        if (
+          existing.some(
+            (u) => u.email.toLowerCase() === email.toLowerCase()
+          )
+        ) {
+          return false;
+        }
+
+        const hashed = await hashPassword(password);
+
         const newUser: User = {
           id: generateId(),
           name,
           email,
-          handicap: 18.0,
+          passwordHash: hashed,
+          handicap: handicap ?? 18.0,
           ghinLinked: false,
           stats: { roundsPlayed: 0, lifetimeWinnings: 0, wins: 0 },
         };
-        // Persist to all-users list
-        try {
-          const savedUsers = JSON.parse(
-            localStorage.getItem("caddie-users") || "[]"
-          ) as User[];
-          savedUsers.push(newUser);
-          localStorage.setItem("caddie-users", JSON.stringify(savedUsers));
-        } catch {
-          // ignore
-        }
+
+        existing.push(newUser);
+        saveUsers(existing);
         set({ user: newUser, isAuthenticated: true });
         return true;
       },
@@ -89,7 +139,6 @@ export const useAuthStore = create<AuthState>()(
         let handicapIndex = 18.0;
         let resolvedFirstName = "";
         let resolvedLastName = lastName;
-        let configRequired = false;
 
         try {
           const res = await fetch("/api/ghin", {
@@ -101,12 +150,7 @@ export const useAuthStore = create<AuthState>()(
           const data = await res.json();
 
           if (!res.ok) {
-            if (data.configRequired) {
-              // Token not set — let the modal handle the UI, don't link
-              configRequired = true;
-              return false;
-            }
-            // Golfer not found or other GHIN error
+            if (data.configRequired) return false;
             return false;
           }
 
@@ -121,7 +165,7 @@ export const useAuthStore = create<AuthState>()(
           ...user,
           ghin,
           ghinLinked: true,
-          ghinVerified: !configRequired,
+          ghinVerified: true,
           handicap: handicapIndex,
           name: resolvedFirstName
             ? `${resolvedFirstName} ${resolvedLastName}`.trim()
@@ -129,20 +173,21 @@ export const useAuthStore = create<AuthState>()(
           ghinSyncedAt: new Date().toISOString(),
         };
         set({ user: updated });
+        syncUserToStorage(updated);
         return true;
       },
 
       unlinkGhin: () => {
         const user = get().user;
         if (!user) return;
-        set({
-          user: {
-            ...user,
-            ghin: undefined,
-            ghinLinked: false,
-            ghinSyncedAt: undefined,
-          },
-        });
+        const updated: User = {
+          ...user,
+          ghin: undefined,
+          ghinLinked: false,
+          ghinSyncedAt: undefined,
+        };
+        set({ user: updated });
+        syncUserToStorage(updated);
       },
     }),
     {

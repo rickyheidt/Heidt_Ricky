@@ -11,15 +11,16 @@ interface GhinModalProps {
   onClose: () => void;
 }
 
-type ModalState = "idle" | "loading" | "success" | "no_token";
+type ModalState = "idle" | "loading" | "success" | "no_token" | "manual";
 
 export default function GhinModal({ isOpen, onClose }: GhinModalProps) {
-  const { linkGhin } = useAuthStore();
+  const { linkGhin, updateUser } = useAuthStore();
   const [ghin, setGhin] = useState("");
   const [lastName, setLastName] = useState("");
   const [status, setStatus] = useState<ModalState>("idle");
   const [error, setError] = useState("");
   const [syncedHandicap, setSyncedHandicap] = useState<number | null>(null);
+  const [manualHandicap, setManualHandicap] = useState("");
 
   const handleLink = async () => {
     if (!ghin.trim() || !lastName.trim()) {
@@ -174,6 +175,72 @@ export default function GhinModal({ isOpen, onClose }: GhinModalProps) {
                   >
                     Got It
                   </button>
+
+                  <button
+                    onClick={() => setStatus("manual")}
+                    className="w-full font-inter text-muted text-sm py-2 active:opacity-60 transition-opacity"
+                  >
+                    Enter Manually Instead
+                  </button>
+                </motion.div>
+
+              ) : status === "manual" ? (
+                /* ── Manual handicap entry ──────────────────────────────── */
+                <motion.div
+                  key="manual"
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                  className="flex flex-col gap-5"
+                >
+                  <h2 className="font-fraunces text-ink text-2xl font-semibold pr-8">
+                    Enter Handicap Manually
+                  </h2>
+
+                  <p className="font-inter text-muted text-sm leading-relaxed">
+                    Enter your handicap index. You can always link GHIN later.
+                  </p>
+
+                  <div className="flex flex-col gap-3">
+                    <div className="flex flex-col gap-1.5">
+                      <label className="font-inter text-sm font-medium text-muted">
+                        Handicap Index
+                      </label>
+                      <input
+                        type="text"
+                        inputMode="decimal"
+                        value={manualHandicap}
+                        onChange={(e) => setManualHandicap(e.target.value)}
+                        placeholder="18.0"
+                        className={cn(
+                          "bg-cream-dark text-ink font-inter text-base",
+                          "rounded-xl px-4 py-3",
+                          "border border-transparent outline-none",
+                          "focus:border-forest transition-colors",
+                          "placeholder:text-muted/60"
+                        )}
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      const val = parseFloat(manualHandicap);
+                      if (isNaN(val) || val < 0 || val > 54) return;
+                      updateUser({ handicap: val });
+                      setStatus("success");
+                    }}
+                    className="w-full bg-forest text-white font-inter font-semibold text-base rounded-xl py-3.5 active:scale-[0.97] transition-transform"
+                  >
+                    Save Handicap
+                  </button>
+
+                  <button
+                    onClick={() => setStatus("idle")}
+                    className="w-full font-inter text-muted text-sm py-2 active:opacity-60 transition-opacity"
+                  >
+                    Back
+                  </button>
                 </motion.div>
 
               ) : status === "success" ? (
@@ -327,6 +394,13 @@ export default function GhinModal({ isOpen, onClose }: GhinModalProps) {
                     className="w-full font-inter text-muted text-sm py-2 active:opacity-60 transition-opacity disabled:opacity-30"
                   >
                     Maybe Later
+                  </button>
+
+                  <button
+                    onClick={() => setStatus("manual")}
+                    className="w-full font-inter text-muted text-sm py-2 active:opacity-60 transition-opacity"
+                  >
+                    Enter Handicap Manually
                   </button>
                 </motion.div>
               )}

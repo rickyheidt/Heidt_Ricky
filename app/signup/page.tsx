@@ -14,6 +14,8 @@ export default function SignUpPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [handicap, setHandicap] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -34,14 +36,18 @@ export default function SignUpPage() {
       setError("Password must be at least 6 characters.");
       return;
     }
+    if (password !== confirmPassword) {
+      setError("Passwords don't match.");
+      return;
+    }
 
     setLoading(true);
     try {
-      const success = await signUp(name.trim(), email, password);
+      const success = await signUp(name.trim(), email, password, handicap ? parseFloat(handicap) : undefined);
       if (success) {
         router.push("/home");
       } else {
-        setError("Could not create account. Please try again.");
+        setError("An account with this email already exists.");
       }
     } catch {
       setError("Something went wrong. Please try again.");
@@ -139,6 +145,42 @@ export default function SignUpPage() {
                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
             </div>
+          </div>
+
+          {/* Confirm Password */}
+          <div className="flex flex-col gap-1.5">
+            <label className="text-muted font-inter text-sm font-medium">
+              Confirm Password
+            </label>
+            <input
+              type={showPassword ? "text" : "password"}
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              placeholder="Re-enter password"
+              autoComplete="new-password"
+              className="bg-cream-dark text-ink font-inter text-base rounded-xl px-4 py-3 border-2 border-transparent outline-none focus:border-forest transition-colors placeholder:text-muted/60"
+            />
+          </div>
+
+          {/* Handicap Index */}
+          <div className="flex flex-col gap-1.5">
+            <label className="text-muted font-inter text-sm font-medium">
+              Handicap Index
+            </label>
+            <input
+              type="text"
+              inputMode="decimal"
+              step="0.1"
+              min={0}
+              max={54}
+              value={handicap}
+              onChange={(e) => setHandicap(e.target.value)}
+              placeholder="18.0"
+              className="bg-cream-dark text-ink font-inter text-base rounded-xl px-4 py-3 border-2 border-transparent outline-none focus:border-forest transition-colors placeholder:text-muted/60"
+            />
+            <p className="text-muted/70 font-inter text-xs">
+              Optional — defaults to 18.0
+            </p>
           </div>
 
           {/* Error */}

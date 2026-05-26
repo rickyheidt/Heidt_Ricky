@@ -2,10 +2,10 @@
 
 import { useState, useMemo, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft, X, Users } from "lucide-react";
+import { ArrowLeft, X, Users, UserPlus } from "lucide-react";
 import { GAMES, COURSES } from "@/lib/data";
 import { useAuthStore, useFriendsStore, useRoundStore } from "@/lib/store";
-import { cn, formatHandicap } from "@/lib/utils";
+import { cn, formatHandicap, generateId } from "@/lib/utils";
 import type {
   Player,
   GameType,
@@ -243,6 +243,12 @@ function SetupContent() {
     getDefaultConfig(gameTypeParam)
   );
 
+  // Guest player form
+  const [showGuestForm, setShowGuestForm] = useState(false);
+  const [guestName, setGuestName] = useState("");
+  const [guestHandicap, setGuestHandicap] = useState("18.0");
+  const [guestError, setGuestError] = useState("");
+
   // Add a friend as player
   const addFriend = (friendId: string) => {
     const friend = friends.find((f) => f.id === friendId);
@@ -265,6 +271,33 @@ function SetupContent() {
   // Remove a player (not the host)
   const removePlayer = (playerId: string) => {
     setPlayers((prev) => prev.filter((p) => p.id !== playerId || p.isHost));
+  };
+
+  const addGuest = () => {
+    const name = guestName.trim();
+    if (!name) {
+      setGuestError("Enter a name.");
+      return;
+    }
+    const hcp = parseFloat(guestHandicap);
+    if (isNaN(hcp) || hcp < 0 || hcp > 54) {
+      setGuestError("Handicap must be 0–54.");
+      return;
+    }
+    setPlayers((prev) => [
+      ...prev,
+      {
+        id: `guest-${generateId()}`,
+        name,
+        handicap: hcp,
+        ghinLinked: false,
+        isHost: false,
+      },
+    ]);
+    setGuestName("");
+    setGuestHandicap("18.0");
+    setGuestError("");
+    setShowGuestForm(false);
   };
 
   const addedIds = new Set(players.map((p) => p.id));
@@ -450,6 +483,81 @@ function SetupContent() {
               })}
             </div>
           </div>
+
+          {/* ── Guest Player ──────────────────────────────────────────── */}
+          {!showGuestForm ? (
+            <button
+              type="button"
+              onClick={() => setShowGuestForm(true)}
+              className="mt-3 flex items-center gap-2 w-full rounded-2xl border-2 border-dashed border-forest/20 px-4 py-3.5 text-left active:bg-forest/5 transition-colors"
+            >
+              <div className="w-8 h-8 rounded-full bg-forest/10 flex items-center justify-center">
+                <UserPlus size={16} className="text-forest" />
+              </div>
+              <div>
+                <span className="font-inter text-forest text-sm font-semibold">
+                  Add Guest Player
+                </span>
+                <p className="font-inter text-muted text-xs mt-0.5">
+                  Someone not in your friends list
+                </p>
+              </div>
+            </button>
+          ) : (
+            <div className="mt-3 bg-cream-dark rounded-2xl p-4">
+              <p className="font-inter text-ink text-sm font-semibold mb-3">
+                Guest Player
+              </p>
+              <div className="flex flex-col gap-2.5">
+                <input
+                  type="text"
+                  value={guestName}
+                  onChange={(e) => {
+                    setGuestName(e.target.value);
+                    setGuestError("");
+                  }}
+                  placeholder="Name"
+                  autoFocus
+                  className="bg-cream text-ink font-inter text-sm rounded-xl px-4 py-3 border border-transparent outline-none focus:border-forest transition-colors placeholder:text-muted/60"
+                />
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  value={guestHandicap}
+                  onChange={(e) => {
+                    setGuestHandicap(e.target.value);
+                    setGuestError("");
+                  }}
+                  placeholder="Handicap (e.g. 14.2)"
+                  className="bg-cream text-ink font-inter text-sm rounded-xl px-4 py-3 border border-transparent outline-none focus:border-forest transition-colors placeholder:text-muted/60"
+                />
+                {guestError && (
+                  <p className="font-inter text-red-600 text-xs">
+                    {guestError}
+                  </p>
+                )}
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={addGuest}
+                    className="flex-1 bg-forest text-white font-inter font-semibold text-sm rounded-xl py-2.5 active:scale-[0.97] transition-transform"
+                  >
+                    Add
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowGuestForm(false);
+                      setGuestError("");
+                    }}
+                    className="flex-1 bg-cream text-muted font-inter font-semibold text-sm rounded-xl py-2.5 active:scale-[0.97] transition-transform"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </section>
 
         {/* ── SECTION B: Game Config ─────────────────────────────────── */}

@@ -34,7 +34,7 @@ export default function SignInPage() {
       if (success) {
         router.push("/home");
       } else {
-        setError("Invalid email or password. Try signing up first.");
+        setError("Incorrect email or password.");
       }
     } catch {
       setError("Something went wrong. Please try again.");
