@@ -53,3 +53,8 @@ node_modules/
 # Next.js
 caddie/.next/
 caddie/node_modules/
+
+# Next.js / SKINZ app (root-level)
+node_modules/
+.next/
+tsconfig.tsbuildinfo
