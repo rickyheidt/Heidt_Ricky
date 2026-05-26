@@ -82,18 +82,50 @@ export const useAuthStore = create<AuthState>()(
         return true;
       },
 
-      linkGhin: async (ghin: string, _lastName: string) => {
-        // Mock GHIN sync — fake 1.5s delay then update handicap
-        await new Promise((r) => setTimeout(r, 1500));
-        // Generate a mock handicap between 0-28
-        const mockHandicap = parseFloat((Math.random() * 20 + 2).toFixed(1));
+      linkGhin: async (ghin: string, lastName: string) => {
         const user = get().user;
         if (!user) return false;
+
+        let handicapIndex = 18.0;
+        let resolvedFirstName = "";
+        let resolvedLastName = lastName;
+        let configRequired = false;
+
+        try {
+          const res = await fetch("/api/ghin", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ ghinNumber: ghin, lastName }),
+          });
+
+          const data = await res.json();
+
+          if (!res.ok) {
+            if (data.configRequired) {
+              // Token not set — let the modal handle the UI, don't link
+              configRequired = true;
+              return false;
+            }
+            // Golfer not found or other GHIN error
+            return false;
+          }
+
+          handicapIndex = data.handicapIndex ?? 18.0;
+          resolvedFirstName = data.firstName ?? "";
+          resolvedLastName = data.lastName ?? lastName;
+        } catch {
+          return false;
+        }
+
         const updated: User = {
           ...user,
           ghin,
           ghinLinked: true,
-          handicap: mockHandicap,
+          ghinVerified: !configRequired,
+          handicap: handicapIndex,
+          name: resolvedFirstName
+            ? `${resolvedFirstName} ${resolvedLastName}`.trim()
+            : user.name,
           ghinSyncedAt: new Date().toISOString(),
         };
         set({ user: updated });

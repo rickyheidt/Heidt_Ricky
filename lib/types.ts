@@ -10,6 +10,7 @@ export interface User {
   homeClub?: string;
   avatar?: string;
   ghinLinked: boolean;
+  ghinVerified?: boolean;
   ghinSyncedAt?: string;
   stats: {
     roundsPlayed: number;

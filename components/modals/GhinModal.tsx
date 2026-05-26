@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { CheckCircle, Loader2, X } from "lucide-react";
+import { CheckCircle, Loader2, X, AlertCircle } from "lucide-react";
 import { useAuthStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
@@ -11,7 +11,7 @@ interface GhinModalProps {
   onClose: () => void;
 }
 
-type ModalState = "idle" | "loading" | "success";
+type ModalState = "idle" | "loading" | "success" | "no_token";
 
 export default function GhinModal({ isOpen, onClose }: GhinModalProps) {
   const { linkGhin } = useAuthStore();
@@ -19,6 +19,7 @@ export default function GhinModal({ isOpen, onClose }: GhinModalProps) {
   const [lastName, setLastName] = useState("");
   const [status, setStatus] = useState<ModalState>("idle");
   const [error, setError] = useState("");
+  const [syncedHandicap, setSyncedHandicap] = useState<number | null>(null);
 
   const handleLink = async () => {
     if (!ghin.trim() || !lastName.trim()) {
@@ -33,22 +34,47 @@ export default function GhinModal({ isOpen, onClose }: GhinModalProps) {
     setStatus("loading");
 
     try {
+      // Call the API route directly so we can inspect the response before updating state
+      const res = await fetch("/api/ghin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ghinNumber: ghin.trim(), lastName: lastName.trim() }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        if (data.configRequired) {
+          // GHIN_API_TOKEN not set in Vercel — show setup instructions
+          setStatus("no_token");
+          return;
+        }
+        // Golfer not found or bad data
+        setStatus("idle");
+        setError(data.error ?? "Could not verify your GHIN. Please check your details.");
+        return;
+      }
+
+      // We got a real result — call linkGhin to update the store
+      setSyncedHandicap(data.handicapIndex);
       const ok = await linkGhin(ghin.trim(), lastName.trim());
+
       if (ok) {
         setStatus("success");
         setTimeout(() => {
           setStatus("idle");
           setGhin("");
           setLastName("");
+          setSyncedHandicap(null);
           onClose();
-        }, 1200);
+        }, 2000);
       } else {
         setStatus("idle");
-        setError("Could not verify GHIN. Please check your details.");
+        setError("Something went wrong saving your data. Please try again.");
       }
     } catch {
       setStatus("idle");
-      setError("Something went wrong. Please try again.");
+      setError("Network error. Please check your connection and try again.");
     }
   };
 
@@ -98,8 +124,60 @@ export default function GhinModal({ isOpen, onClose }: GhinModalProps) {
             </button>
 
             <AnimatePresence mode="wait">
-              {status === "success" ? (
-                /* Success state */
+              {/* ── No token configured ─────────────────────────────────────── */}
+              {status === "no_token" ? (
+                <motion.div
+                  key="no_token"
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                  className="flex flex-col items-center py-4 gap-4 text-center"
+                >
+                  <div className="w-16 h-16 rounded-full bg-gold/15 flex items-center justify-center">
+                    <AlertCircle size={32} className="text-gold" />
+                  </div>
+                  <div>
+                    <p className="font-fraunces text-ink text-xl font-semibold mb-1">
+                      API Setup Required
+                    </p>
+                    <p className="text-muted text-sm leading-relaxed">
+                      Add your GHIN API token to Vercel to enable real handicap sync.
+                    </p>
+                  </div>
+
+                  <div className="w-full bg-cream-dark rounded-2xl p-4 text-left space-y-3">
+                    <p className="text-xs font-bold text-ink uppercase tracking-widest">
+                      How to activate
+                    </p>
+                    <div className="space-y-2">
+                      <Step n={1}>
+                        Apply for API access at{" "}
+                        <span className="text-forest font-semibold">usga.org/ghin</span>
+                      </Step>
+                      <Step n={2}>
+                        In Vercel → <span className="font-semibold">Settings</span> →{" "}
+                        <span className="font-semibold">Environment Variables</span>
+                      </Step>
+                      <Step n={3}>
+                        Add variable:{" "}
+                        <code className="bg-cream text-forest text-xs px-1.5 py-0.5 rounded font-mono">
+                          GHIN_API_TOKEN
+                        </code>
+                      </Step>
+                      <Step n={4}>Redeploy — then try again</Step>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => setStatus("idle")}
+                    className="w-full bg-forest text-white font-semibold rounded-xl py-3.5 active:scale-[0.97] transition-transform"
+                  >
+                    Got It
+                  </button>
+                </motion.div>
+
+              ) : status === "success" ? (
+                /* ── Success ──────────────────────────────────────────────── */
                 <motion.div
                   key="success"
                   initial={{ opacity: 0, scale: 0.85 }}
@@ -115,13 +193,23 @@ export default function GhinModal({ isOpen, onClose }: GhinModalProps) {
                     <p className="font-fraunces text-ink text-2xl font-semibold">
                       GHIN Linked!
                     </p>
+                    {syncedHandicap !== null && (
+                      <p className="font-fraunces text-forest text-4xl font-bold mt-2">
+                        {syncedHandicap < 0
+                          ? `+${Math.abs(syncedHandicap).toFixed(1)}`
+                          : syncedHandicap.toFixed(1)}
+                      </p>
+                    )}
                     <p className="font-inter text-muted text-sm mt-1">
-                      Your handicap has been synced.
+                      {syncedHandicap !== null
+                        ? "Your official handicap index"
+                        : "Your handicap has been synced."}
                     </p>
                   </div>
                 </motion.div>
+
               ) : (
-                /* Form state */
+                /* ── Form ─────────────────────────────────────────────────── */
                 <motion.div
                   key="form"
                   initial={{ opacity: 0 }}
@@ -129,39 +217,40 @@ export default function GhinModal({ isOpen, onClose }: GhinModalProps) {
                   exit={{ opacity: 0 }}
                   className="flex flex-col gap-5"
                 >
-                  {/* Title */}
                   <h2 className="font-fraunces text-ink text-2xl font-semibold pr-8">
                     Link Your GHIN Account
                   </h2>
 
                   {/* GHIN logo area */}
-                  <div className="bg-forest rounded-2xl py-6 flex items-center justify-center">
+                  <div className="bg-forest rounded-2xl py-5 flex flex-col items-center justify-center gap-1">
                     <span className="font-fraunces text-white text-5xl font-bold tracking-wider">
                       GHIN
                     </span>
+                    <span className="text-white/50 text-xs font-medium tracking-widest uppercase">
+                      USGA · Official Handicap
+                    </span>
                   </div>
 
-                  {/* Description */}
                   <p className="font-inter text-muted text-sm leading-relaxed">
                     Enter your GHIN number and last name to sync your official
                     handicap index from the USGA.
                   </p>
 
-                  {/* Inputs */}
                   <div className="flex flex-col gap-3">
                     <div className="flex flex-col gap-1.5">
                       <label className="font-inter text-sm font-medium text-muted">
                         GHIN Number
                       </label>
                       <input
-                        type="number"
+                        type="text"
                         inputMode="numeric"
                         value={ghin}
                         onChange={(e) => {
-                          setGhin(e.target.value);
+                          setGhin(e.target.value.replace(/\D/g, ""));
                           setError("");
                         }}
                         placeholder="1234567"
+                        maxLength={8}
                         disabled={status === "loading"}
                         className={cn(
                           "bg-cream-dark text-ink font-inter text-base",
@@ -170,7 +259,6 @@ export default function GhinModal({ isOpen, onClose }: GhinModalProps) {
                           "focus:border-forest transition-colors",
                           "placeholder:text-muted/60",
                           "disabled:opacity-50",
-                          "[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none",
                           error && "border-red-400"
                         )}
                       />
@@ -202,7 +290,6 @@ export default function GhinModal({ isOpen, onClose }: GhinModalProps) {
                       />
                     </div>
 
-                    {/* Error */}
                     {error && (
                       <motion.p
                         initial={{ opacity: 0 }}
@@ -214,7 +301,6 @@ export default function GhinModal({ isOpen, onClose }: GhinModalProps) {
                     )}
                   </div>
 
-                  {/* Link Account button */}
                   <button
                     onClick={handleLink}
                     disabled={status === "loading"}
@@ -235,7 +321,6 @@ export default function GhinModal({ isOpen, onClose }: GhinModalProps) {
                     )}
                   </button>
 
-                  {/* Maybe Later */}
                   <button
                     onClick={handleClose}
                     disabled={status === "loading"}
@@ -250,5 +335,16 @@ export default function GhinModal({ isOpen, onClose }: GhinModalProps) {
         </>
       )}
     </AnimatePresence>
+  );
+}
+
+function Step({ n, children }: { n: number; children: React.ReactNode }) {
+  return (
+    <div className="flex items-start gap-2.5">
+      <div className="w-5 h-5 rounded-full bg-forest/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+        <span className="text-forest text-xs font-bold">{n}</span>
+      </div>
+      <p className="text-sm text-ink leading-snug">{children}</p>
+    </div>
   );
 }
