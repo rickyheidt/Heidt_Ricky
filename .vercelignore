@@ -1,0 +1,13 @@
+# Exclude Java lesson directories from Vercel build
+APLesson_01
+APLesson_02
+APLesson_03
+APLesson_04
+APLesson_05
+APLesson_06
+APLesson_07
+APLesson_08
+APLesson_09
+
+# Exclude old caddie subfolder (app is now at root)
+caddie
