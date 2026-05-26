@@ -139,39 +139,43 @@ export default function GhinModal({ isOpen, onClose }: GhinModalProps) {
                   </div>
                   <div>
                     <p className="font-fraunces text-ink text-xl font-semibold mb-1">
-                      Get Your GHIN Token
+                      GHIN Auth Failed
                     </p>
                     <p className="text-muted text-sm leading-relaxed">
-                      The GHIN token lives in ghin.com&apos;s own network traffic — grab it in ~60 seconds.
+                      The GHIN API rejected the request. This usually means an auth token is now required.
                     </p>
                   </div>
 
                   <div className="w-full bg-cream-dark rounded-2xl p-4 text-left space-y-3">
                     <p className="text-xs font-bold text-ink uppercase tracking-widest">
-                      How to get the token
+                      How to fix it
                     </p>
                     <div className="space-y-2">
                       <Step n={1}>
                         Open{" "}
                         <span className="text-forest font-semibold">ghin.com</span>
-                        {" "}in Chrome or Safari
+                        {" "}in Chrome and log in
                       </Step>
                       <Step n={2}>
                         Open <span className="font-semibold">DevTools</span> (F12) →{" "}
                         <span className="font-semibold">Network</span> tab
                       </Step>
                       <Step n={3}>
-                        Search for any GHIN number on the site — watch for a request to{" "}
+                        Search for a GHIN number — find the request to{" "}
                         <code className="bg-cream text-forest text-[11px] px-1 py-0.5 rounded font-mono">
                           api2.ghin.com
                         </code>
                       </Step>
                       <Step n={4}>
-                        Copy the{" "}
+                        Check the <span className="font-semibold">Headers</span> tab for an{" "}
+                        <code className="bg-cream text-forest text-[11px] px-1 py-0.5 rounded font-mono">
+                          Authorization
+                        </code>
+                        {" "}header or{" "}
                         <code className="bg-cream text-forest text-[11px] px-1 py-0.5 rounded font-mono">
                           token=
                         </code>
-                        {" "}value from that URL
+                        {" "}in the URL
                       </Step>
                       <Step n={5}>
                         In Vercel: Settings → Environment Variables → add{" "}
@@ -181,9 +185,6 @@ export default function GhinModal({ isOpen, onClose }: GhinModalProps) {
                         {" "}→ Redeploy
                       </Step>
                     </div>
-                    <p className="text-[11px] text-muted/70 pt-1 leading-relaxed">
-                      ghin.com uses this same token publicly — it works fine for personal apps.
-                    </p>
                   </div>
 
                   <button
