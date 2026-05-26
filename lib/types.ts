@@ -5,6 +5,7 @@ export interface User {
   name: string;
   email: string;
   handicap: number;
+  birthday?: string;   // ISO date string e.g. "1990-06-15"
   ghin?: string;
   lowHi?: string;
   homeClub?: string;

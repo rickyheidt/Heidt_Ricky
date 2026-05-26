@@ -59,7 +59,8 @@ export function getPlayingHandicap(player: Player): number {
 }
 
 /**
- * Given a list of players and a hole, return stroke counts keyed by player id
+ * Given a list of players and a hole, return stroke counts keyed by player id.
+ * Uses ABSOLUTE handicap (each player vs scratch).
  */
 export function strokesPerPlayer(
   players: Player[],
@@ -68,6 +69,36 @@ export function strokesPerPlayer(
   const result: Record<string, number> = {};
   for (const player of players) {
     result[player.id] = strokesOnHole(player.handicap, hole.handicap);
+  }
+  return result;
+}
+
+/**
+ * In group play, strokes are allocated RELATIVE to the lowest handicap in the group.
+ * e.g. if players are 5, 15, 22 — relative handicaps become 0, 10, 17.
+ * Returns strokes received on a hole for one player relative to the field.
+ */
+export function strokesOnHoleRelative(
+  playerHandicap: number,
+  holeHandicap: number,
+  allPlayers: Player[]
+): number {
+  const minHcp = Math.min(...allPlayers.map((p) => p.handicap));
+  const relHcp = Math.max(0, playerHandicap - minHcp);
+  return strokesOnHole(relHcp, holeHandicap);
+}
+
+/**
+ * Given a list of players and a hole, return stroke counts keyed by player id.
+ * Uses RELATIVE handicap (adjusted against the lowest handicap in the group).
+ */
+export function strokesPerPlayerRelative(
+  players: Player[],
+  hole: Hole
+): Record<string, number> {
+  const result: Record<string, number> = {};
+  for (const player of players) {
+    result[player.id] = strokesOnHoleRelative(player.handicap, hole.handicap, players);
   }
   return result;
 }

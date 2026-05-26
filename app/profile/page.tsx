@@ -8,9 +8,12 @@ import {
   RefreshCw,
   Unlink,
   LogOut,
-  Home,
-  ChevronRight,
   Pencil,
+  X,
+  Save,
+  User as UserIcon,
+  CalendarDays,
+  MapPin,
 } from "lucide-react";
 import { useAuthStore } from "@/lib/store";
 import { formatHandicap, formatMoney, cn } from "@/lib/utils";
@@ -31,14 +34,32 @@ function timeSince(isoString: string): string {
   return days === 1 ? "1 day ago" : `${days} days ago`;
 }
 
+function formatBirthday(iso: string): string {
+  // iso like "1990-06-15"
+  const [year, month, day] = iso.split("-");
+  const months = [
+    "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+  ];
+  return `${months[parseInt(month, 10) - 1]} ${parseInt(day, 10)}, ${year}`;
+}
+
 export default function ProfilePage() {
   const router = useRouter();
   const { user, isAuthenticated, signOut, unlinkGhin, linkGhin, updateUser } =
     useAuthStore();
   const [ghinOpen, setGhinOpen] = useState(false);
   const [syncing, setSyncing] = useState(false);
+
+  // Handicap editing
   const [editingHandicap, setEditingHandicap] = useState(false);
   const [handicapInput, setHandicapInput] = useState("");
+
+  // Account info editing
+  const [editingAccount, setEditingAccount] = useState(false);
+  const [nameInput, setNameInput] = useState("");
+  const [birthdayInput, setBirthdayInput] = useState("");
+  const [homeClubInput, setHomeClubInput] = useState("");
 
   // Auth guard
   useEffect(() => {
@@ -64,6 +85,23 @@ export default function ProfilePage() {
   const handleSignOut = () => {
     signOut();
     router.replace("/");
+  };
+
+  const startEditAccount = () => {
+    setNameInput(user.name);
+    setBirthdayInput(user.birthday ?? "");
+    setHomeClubInput(user.homeClub ?? "");
+    setEditingAccount(true);
+  };
+
+  const handleSaveAccount = () => {
+    const trimmed = nameInput.trim();
+    updateUser({
+      name: trimmed || user.name,
+      birthday: birthdayInput || undefined,
+      homeClub: homeClubInput.trim() || undefined,
+    });
+    setEditingAccount(false);
   };
 
   return (
@@ -92,7 +130,7 @@ export default function ProfilePage() {
           </div>
         </motion.div>
 
-        {/* ── GHIN Card ───────────────────────────────────────────── */}
+        {/* ── GHIN / Handicap Card ────────────────────────────────── */}
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
@@ -101,11 +139,9 @@ export default function ProfilePage() {
           {user.ghinLinked ? (
             /* Linked state — forest green */
             <div className="bg-forest rounded-2xl p-5 shadow-card relative overflow-hidden">
-              {/* Decorative rings */}
               <span className="absolute -right-8 -top-8 w-40 h-40 rounded-full border-[24px] border-white/5 pointer-events-none" />
               <span className="absolute -right-4 -bottom-10 w-32 h-32 rounded-full border-[16px] border-white/5 pointer-events-none" />
 
-              {/* Badge */}
               <div className="flex items-center justify-between mb-4">
                 <span className="inline-flex items-center gap-1.5 bg-gold text-white font-inter text-xs font-semibold px-3 py-1 rounded-full">
                   <CheckCircle2 size={12} />
@@ -113,7 +149,6 @@ export default function ProfilePage() {
                 </span>
               </div>
 
-              {/* Handicap */}
               <p className="font-fraunces text-white text-6xl font-bold leading-none mb-1">
                 {formatHandicap(user.handicap)}
               </p>
@@ -133,7 +168,6 @@ export default function ProfilePage() {
                 </p>
               )}
 
-              {/* Action buttons */}
               <div className="flex gap-3">
                 <button
                   onClick={handleSync}
@@ -145,10 +179,7 @@ export default function ProfilePage() {
                     "disabled:opacity-50 disabled:cursor-not-allowed"
                   )}
                 >
-                  <RefreshCw
-                    size={15}
-                    className={syncing ? "animate-spin" : ""}
-                  />
+                  <RefreshCw size={15} className={syncing ? "animate-spin" : ""} />
                   {syncing ? "Syncing..." : "Sync Handicap"}
                 </button>
                 <button
@@ -161,14 +192,12 @@ export default function ProfilePage() {
               </div>
             </div>
           ) : (
-            /* Not linked state — editable handicap card */
+            /* Not linked — editable handicap */
             <div className="flex flex-col gap-3">
               <div className="bg-forest rounded-2xl p-5 shadow-card relative overflow-hidden">
-                {/* Decorative rings */}
                 <span className="absolute -right-8 -top-8 w-40 h-40 rounded-full border-[24px] border-white/5 pointer-events-none" />
                 <span className="absolute -right-4 -bottom-10 w-32 h-32 rounded-full border-[16px] border-white/5 pointer-events-none" />
 
-                {/* Edit button */}
                 {!editingHandicap && (
                   <button
                     onClick={() => {
@@ -183,7 +212,6 @@ export default function ProfilePage() {
                 )}
 
                 {editingHandicap ? (
-                  /* Editing state */
                   <div className="flex flex-col gap-3 relative z-10">
                     <p className="font-inter text-white/60 text-sm font-medium">
                       Handicap Index
@@ -200,9 +228,7 @@ export default function ProfilePage() {
                       <button
                         onClick={() => {
                           const val = parseFloat(handicapInput);
-                          if (!isNaN(val)) {
-                            updateUser({ handicap: val });
-                          }
+                          if (!isNaN(val)) updateUser({ handicap: val });
                           setEditingHandicap(false);
                         }}
                         className="flex-1 bg-gold text-white font-inter font-semibold text-sm rounded-xl py-2.5 active:scale-[0.97] transition-transform"
@@ -218,7 +244,6 @@ export default function ProfilePage() {
                     </div>
                   </div>
                 ) : (
-                  /* Display state */
                   <div className="relative z-10">
                     <p className="font-inter text-white/60 text-sm font-medium mb-1">
                       Handicap Index
@@ -230,7 +255,6 @@ export default function ProfilePage() {
                 )}
               </div>
 
-              {/* Secondary GHIN link */}
               <button
                 onClick={() => setGhinOpen(true)}
                 className="font-inter text-muted text-sm active:opacity-60 transition-opacity text-center"
@@ -248,7 +272,6 @@ export default function ProfilePage() {
           transition={{ duration: 0.3, delay: 0.12, ease: "easeOut" }}
         >
           <div className="flex gap-3 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-none">
-            {/* Rounds Played */}
             <div className="bg-cream-dark rounded-2xl p-4 shadow-card shrink-0 flex-1 min-w-[100px]">
               <p className="font-fraunces text-ink text-2xl font-bold">
                 {user.stats.roundsPlayed}
@@ -258,7 +281,6 @@ export default function ProfilePage() {
               </p>
             </div>
 
-            {/* Lifetime Winnings */}
             <div className="bg-cream-dark rounded-2xl p-4 shadow-card shrink-0 flex-1 min-w-[110px]">
               <p className="font-fraunces text-ink text-2xl font-bold">
                 {formatMoney(user.stats.lifetimeWinnings)}
@@ -268,7 +290,6 @@ export default function ProfilePage() {
               </p>
             </div>
 
-            {/* Win Rate */}
             <div className="bg-cream-dark rounded-2xl p-4 shadow-card shrink-0 flex-1 min-w-[90px]">
               <p className="font-fraunces text-ink text-2xl font-bold">
                 {winRate}%
@@ -280,37 +301,139 @@ export default function ProfilePage() {
           </div>
         </motion.div>
 
-        {/* ── Settings Section ────────────────────────────────────── */}
+        {/* ── Account Info ────────────────────────────────────────── */}
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, delay: 0.18, ease: "easeOut" }}
           className="flex flex-col gap-3"
         >
-          {/* Home Club row */}
+          <p className="font-inter text-muted text-xs font-semibold uppercase tracking-wider px-1">
+            Account Info
+          </p>
+
           <div className="bg-cream-dark rounded-2xl shadow-card overflow-hidden">
-            <button className="w-full flex items-center gap-4 px-5 py-4 active:bg-ink/5 transition-colors">
-              <div className="w-9 h-9 rounded-xl bg-forest/10 flex items-center justify-center shrink-0">
-                <Home size={18} className="text-forest" />
+            {/* Section header */}
+            <div className="flex items-center justify-between px-5 py-3.5 border-b border-ink/5">
+              <p className="font-inter text-ink text-sm font-semibold">
+                Personal Details
+              </p>
+              {editingAccount ? (
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => setEditingAccount(false)}
+                    className="text-muted active:opacity-60 transition-opacity"
+                    aria-label="Cancel"
+                  >
+                    <X size={18} />
+                  </button>
+                  <button
+                    onClick={handleSaveAccount}
+                    className="flex items-center gap-1.5 bg-forest text-white font-inter font-semibold text-xs px-3 py-1.5 rounded-lg active:opacity-80 transition-opacity"
+                  >
+                    <Save size={13} />
+                    Save
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={startEditAccount}
+                  className="text-muted active:text-ink transition-colors p-1"
+                  aria-label="Edit account info"
+                >
+                  <Pencil size={16} />
+                </button>
+              )}
+            </div>
+
+            {/* Name row */}
+            <div className="px-5 py-3.5 border-b border-ink/5 flex items-start gap-3">
+              <div className="w-7 h-7 rounded-lg bg-forest/10 flex items-center justify-center shrink-0 mt-0.5">
+                <UserIcon size={14} className="text-forest" />
               </div>
-              <div className="flex-1 text-left">
-                <p className="font-inter text-ink text-sm font-semibold">
-                  Home Club
-                </p>
-                <p className="font-inter text-muted text-xs mt-0.5">
-                  {user.homeClub || "Not set"}
-                </p>
+              <div className="flex-1 min-w-0">
+                <p className="font-inter text-muted text-xs mb-0.5">Name</p>
+                {editingAccount ? (
+                  <input
+                    type="text"
+                    value={nameInput}
+                    onChange={(e) => setNameInput(e.target.value)}
+                    placeholder="Your name"
+                    className="w-full bg-white border border-ink/10 text-ink font-inter text-sm font-medium rounded-lg px-3 py-2 outline-none focus:border-forest/50 transition-colors"
+                  />
+                ) : (
+                  <p className="font-inter text-ink text-sm font-medium truncate">
+                    {user.name}
+                  </p>
+                )}
               </div>
-              <ChevronRight size={18} className="text-muted shrink-0" />
-            </button>
+            </div>
+
+            {/* Birthday row */}
+            <div className="px-5 py-3.5 border-b border-ink/5 flex items-start gap-3">
+              <div className="w-7 h-7 rounded-lg bg-forest/10 flex items-center justify-center shrink-0 mt-0.5">
+                <CalendarDays size={14} className="text-forest" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-inter text-muted text-xs mb-0.5">Birthday</p>
+                {editingAccount ? (
+                  <input
+                    type="date"
+                    value={birthdayInput}
+                    onChange={(e) => setBirthdayInput(e.target.value)}
+                    className="w-full bg-white border border-ink/10 text-ink font-inter text-sm font-medium rounded-lg px-3 py-2 outline-none focus:border-forest/50 transition-colors"
+                  />
+                ) : (
+                  <p className="font-inter text-ink text-sm font-medium">
+                    {user.birthday ? formatBirthday(user.birthday) : (
+                      <span className="text-muted">Not set</span>
+                    )}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Home Club row */}
+            <div className="px-5 py-3.5 flex items-start gap-3">
+              <div className="w-7 h-7 rounded-lg bg-forest/10 flex items-center justify-center shrink-0 mt-0.5">
+                <MapPin size={14} className="text-forest" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-inter text-muted text-xs mb-0.5">Home Club</p>
+                {editingAccount ? (
+                  <input
+                    type="text"
+                    value={homeClubInput}
+                    onChange={(e) => setHomeClubInput(e.target.value)}
+                    placeholder="e.g. Pebble Beach Golf Links"
+                    className="w-full bg-white border border-ink/10 text-ink font-inter text-sm font-medium rounded-lg px-3 py-2 outline-none focus:border-forest/50 transition-colors"
+                  />
+                ) : (
+                  <p className="font-inter text-ink text-sm font-medium truncate">
+                    {user.homeClub ? user.homeClub : (
+                      <span className="text-muted">Not set</span>
+                    )}
+                  </p>
+                )}
+              </div>
+            </div>
           </div>
 
-          {/* Account section */}
+          {/* Email (read-only) */}
+          <div className="bg-cream-dark rounded-2xl shadow-card overflow-hidden px-5 py-3.5">
+            <p className="font-inter text-muted text-xs mb-0.5">Email</p>
+            <p className="font-inter text-ink text-sm font-medium truncate">
+              {user.email}
+            </p>
+            <p className="font-inter text-muted/60 text-[11px] mt-0.5">
+              Email cannot be changed
+            </p>
+          </div>
+
+          {/* Sign Out */}
           <p className="font-inter text-muted text-xs font-semibold uppercase tracking-wider px-1 mt-1">
             Account
           </p>
-
-          {/* Sign Out */}
           <button
             onClick={handleSignOut}
             className="w-full flex items-center justify-center gap-2 bg-red-50 border border-red-200 text-red-600 font-inter font-semibold text-sm rounded-2xl py-4 active:bg-red-100 transition-colors shadow-card"

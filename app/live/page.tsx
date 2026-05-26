@@ -42,7 +42,8 @@ function scoreColor(label: string) {
 interface ScoreAdjusterProps {
   playerId: string;
   playerName: string;
-  playerHandicap: number;
+  playerHandicap: number;   // raw handicap for display
+  strokeHandicap: number;   // relative handicap for stroke calc
   ghinLinked: boolean;
   holePar: number;
   holeHandicap: number;
@@ -54,6 +55,7 @@ interface ScoreAdjusterProps {
 function ScoreAdjuster({
   playerName,
   playerHandicap,
+  strokeHandicap,
   ghinLinked,
   holePar,
   holeHandicap,
@@ -61,7 +63,7 @@ function ScoreAdjuster({
   score,
   onChangeScore,
 }: ScoreAdjusterProps) {
-  const strokes = strokesOnHole(playerHandicap, holeHandicap);
+  const strokes = strokesOnHole(strokeHandicap, holeHandicap);
   const effectiveScore = isNet ? score - strokes : score;
   const label = score > 0 ? scoreToPar(effectiveScore, holePar) : "—";
   const clr = score > 0 ? scoreColor(label) : "text-muted bg-cream-dark";
@@ -203,7 +205,7 @@ function SkinsHistory({ skinResults }: { skinResults: SkinResult[] }) {
 
 export default function LivePage() {
   const router = useRouter();
-  const { round, updateScore, completeHole, advanceHole, resetRound } =
+  const { round, updateScore, completeHole, advanceHole } =
     useRoundStore();
 
   const [saving, setSaving] = useState(false);
@@ -215,6 +217,19 @@ export default function LivePage() {
       router.replace("/games");
     }
   }, [round, router]);
+
+  // Auto-initialize scores to par when entering a new hole
+  useEffect(() => {
+    if (!round) return;
+    const holeData = round.course.holeData[round.currentHole - 1];
+    round.players.forEach((player) => {
+      const key = `${round.currentHole}-${player.id}`;
+      if (round.scores[key] === undefined) {
+        updateScore(round.currentHole, player.id, holeData.par);
+      }
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [round?.currentHole]);
 
   // Recalculate skins on score change
   useEffect(() => {
@@ -244,8 +259,13 @@ export default function LivePage() {
       (skinsConfig?.betPerHole ?? 0)
     : 0;
 
+  // Default to par so the button is immediately enabled
   const getScore = (playerId: string) =>
-    round.scores[`${round.currentHole}-${playerId}`] ?? 0;
+    round.scores[`${round.currentHole}-${playerId}`] ?? currentHoleData.par;
+
+  // Relative handicap: subtract lowest handicap in group from each player
+  const minHandicap = Math.min(...round.players.map((p) => p.handicap));
+  const relativeHandicap = (hcp: number) => Math.max(0, hcp - minHandicap);
 
   const handleSaveHole = async () => {
     setSaving(true);
@@ -275,8 +295,9 @@ export default function LivePage() {
     }
   };
 
+  // All scores default to par, so this is true unless someone set a score to 0
   const allScoresEntered = round.players.every(
-    (p) => (round.scores[`${round.currentHole}-${p.id}`] ?? 0) > 0
+    (p) => getScore(p.id) > 0
   );
 
   return (
@@ -417,6 +438,7 @@ export default function LivePage() {
                 playerId={player.id}
                 playerName={player.name}
                 playerHandicap={player.handicap}
+                strokeHandicap={relativeHandicap(player.handicap)}
                 ghinLinked={player.ghinLinked}
                 holePar={currentHoleData.par}
                 holeHandicap={currentHoleData.handicap}
